@@ -14,32 +14,38 @@ llm_config = {"config_list": config_list,"temperature":0}
 def multi_class_classifier(example):
     return autogen.AssistantAgent(
         name="multi_classifier",
-        system_message=f"You are an expert clinician specializing in identifying the different categories of conversation breakdown from the followng examples: {example}. Only classify from the entire conversation instance and do not single out a line",
+        system_message=f'''You are an expert clinician analyzing patient-AI interactions. Your task is to extract structured instances of communication between the patient and the AI, focusing on the following **target components**:  
+1. **VAT Tools**: Identify references to AI systems (e.g., "Hey Gemini, explain biotechnology") or tools (e.g., "Alexa, set a timer").  
+2. **Specific Topics**: Highlight niche subjects (e.g., "Texas Flooding," "mental health," or "biotechnology").  
+3. **Structured Models/Visual Supports**: Note instances where the AI uses frameworks (e.g., flowcharts, decision trees) or visual aids (e.g., diagrams, timelines) to structure responses.  
+4. **Prompt Revision**: Flag cases where the patient adjusts their query (e.g., "Can you clarify that?") or the AI rephrases for clarity.  
+
+**Guidelines**:  
+- **Analyze the entire conversation** to detect patterns spanning multiple exchanges (e.g., a flowchart explanation may span 3-5 lines).  
+- **Explicitly map each example to the target components** (e.g., "This instance matches VAT Tools because the patient invoked Gemini").  
+- **Quantify divergence** (e.g., "The examples miss 4/5 key elements: VAT tools, structured models, prompt revisions, and specific topics").  
+- **Adjust examples to align with the objective** (e.g., "Include a case where the AI uses a flowchart to explain biotechnology").  
+
+**Why this matters**:  
+By explicitly linking components to patterns, the LLM can debug mismatches. For instance, if the AI fails to mention a VAT tool like 
+Gemini, the system prompt should guide the LLM to recognize this as a gap and suggest adjustments 
+(e.g., "Add a scenario where the patient asks Gemini to visualize a biotech process"). 
+This ensures the output is actionable, precise, and aligned with the objective of structured, context-aware analysis.''',
         llm_config=llm_config
     )
 
 def multi_class_classification(conversation,example):
     classifier_agent=multi_class_classifier(example)
     message = {"role": "user",
-            "content":f"""TASK: Review the patient conversation and identify the multiple classes of communication breakdown from the categories and 
-            respective examples given below:
-            
-            CONVERSATION:
-            {conversation}
-
-            EXAMPLE:
-            {example}
-        Give me all  instances of communication breakdown within the conversation transcript along with the category it belongs to. Keep in mind, it should only be the direct or indirect conversation between the patient and Alexa that should be categorized.
-        Also look at the entire communication between the patient and Alexa before classifying it for breakdown. Don't just classify it because of one line. If there is no requirement for a classification, do not classify.
+            "content":f"""CONVERSATION: {conversation}
+EXAMPLES: {example}
+Instructions:
+Analyze all patient-Alexa interactions. Evaluate entire communication patterns, not single lines. Identify both successful interactions and breakdowns using the provided categories.
+Output:
+Successful #[X]: [Evidence] - [Context]
+Breakdown #[X]: [Category] - [Evidence] - [Context]
 
 """}
 
     classification_result=classifier_agent.generate_reply([message])
     return classification_result
-
-def syntactic_classifier(example):
-    return autogen.AssistantAgent(
-        name="syntactic_classifier",
-        system_message=f"You are an expert clinician specializing in identifying the different categories of conversation breakdown from the followng examples: {example}. Only classify from the entire conversation instance and do not single out a line",
-        llm_config=llm_config
-    )

@@ -13,14 +13,14 @@ llm_config = {"config_list": config_list,"temperature":0}
 def presence_agent():
     return autogen.AssistantAgent(
         name="check_presence",
-        system_message="You are an expert clinician who specializes in analyzing SOAP notes for documentation of communication breakdowns and technology interactions.",
+        system_message="You are an expert clinician who specializes in analyzing SOAP notes for documentation of communication breakdowns and patient-AI interactions",
         llm_config=llm_config
     )
 
 def check_presence(instances, soap_note):
     instance_agent = presence_agent()
     message = {"role": "user",
-            "content": f"""TASK: Extract and count all instances of communication breakdown or Alexa interactions documented in the OBJECTIVE section of this SOAP note.
+            "content": f"""TASK: Count all reference instances of communication breakdown or Alexa interactions documented in the OBJECTIVE section of this SOAP note.
 
 SOAP NOTE:
 {soap_note}
@@ -38,7 +38,7 @@ INSTRUCTIONS:
    - Total instances found: [number]
    - Details: [list each instance found with brief description]
 
-IMPORTANT: Only count instances that are explicitly documented in the OBJECTIVE section. Do not infer or add instances not mentioned in the documentation."""}
+IMPORTANT: Only count instances that are explicitly documented in the OBJECTIVE section and are part of the REFERENCE INSTANCES to look for. Do not infer or add instances not mentioned in the documentation."""}
 
     instance_result = instance_agent.generate_reply([message])
     return instance_result
